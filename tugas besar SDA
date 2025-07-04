@@ -1,0 +1,136 @@
+#include <iostream>
+#include <queue>     // Untuk menggunakan std::queue
+#include <string>    // Untuk menggunakan std::string
+#include <iomanip>   // Untuk memformat output (setprecision, fixed)
+#include <locale>    // Untuk mengatur locale (meskipun manual formatting sekarang)
+#include <sstream>   // Untuk std::stringstream
+#include <algorithm> // Untuk std::remove
+
+// Struktur untuk merepresentasikan data orang dalam antrian
+struct Orang {
+    std::string nama;
+    double jumlahBayar;
+};
+
+// Fungsi untuk mengonversi string format Rupiah (dengan titik pemisah ribuan) menjadi double
+double stringToDoubleRupiah(std::string s) {
+    // Menghapus semua titik dari string
+    s.erase(std::remove(s.begin(), s.end(), '.'), s.end());
+
+    // Mengonversi string yang sudah bersih menjadi double
+    std::stringstream ss(s);
+    double result = 0.0;
+    ss >> result;
+
+    if (ss.fail() || !ss.eof()) {
+        std::cerr << "Peringatan: Gagal mengonversi input '" << s << "' ke angka. Menggunakan 0.0" << std::endl;
+        return 0.0;
+    }
+    return result;
+}
+
+// Fungsi untuk memformat double menjadi string format Rupiah (dengan titik pemisah ribuan)
+std::string formatRupiah(double amount) {
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(0) << amount;
+
+    std::string s = ss.str();
+    std::string formattedString;
+    int count = 0;
+    for (int i = s.length() - 1; i >= 0; i--) {
+        formattedString.insert(0, 1, s[i]);
+        count++;
+        if (count % 3 == 0 && i != 0) {
+            formattedString.insert(0, 1, '.');
+        }
+    }
+    return formattedString;
+}
+
+// Fungsi untuk menampilkan status antrian saat ini
+void tampilkanAntrian(const std::queue<Orang>& q) {
+    if (q.empty()) {
+        std::cout << "\nAntrian kosong." << std::endl;
+        return;
+    }
+
+    std::cout << "\n--- Sisa Antrian ---" << std::endl;
+    std::queue<Orang> tempQ = q; // Buat salinan untuk iterasi tanpa mengubah antrian asli
+    int i = 1;
+    while (!tempQ.empty()) {
+        Orang orangSaatIni = tempQ.front();
+        std::cout << i << ". Nama: " << orangSaatIni.nama
+                  << ", Jumlah Bayar: Rp " << formatRupiah(orangSaatIni.jumlahBayar) << std::endl;
+        tempQ.pop();
+        i++;
+    }
+    std::cout << "--------------------" << std::endl;
+}
+
+int main() {
+    std::queue<Orang> antrianPembayaran;
+    double totalTransaksi = 0.0;
+    int pilihan;
+    std::string inputJumlahBayarStr;
+
+    do {
+        std::cout << "\n--- Menu Simulasi Antrian Loket ---" << std::endl;
+        std::cout << "1. Tambah Orang ke Antrian (Enqueue)" << std::endl;
+        std::cout << "2. Panggil Orang dari Antrian (Dequeue)" << std::endl;
+        std::cout << "3. Tampilkan Sisa Antrian" << std::endl;
+        std::cout << "4. Lihat Total Transaksi yang Sudah Dibayar" << std::endl;
+        std::cout << "5. Keluar" << std::endl;
+        std::cout << "Masukkan pilihan Anda: ";
+        std::cin >> pilihan;
+
+        switch (pilihan) {
+            case 1: {
+                Orang orangBaru;
+                std::cout << "Masukkan nama: ";
+                std::cin.ignore();
+                std::getline(std::cin, orangBaru.nama);
+                std::cout << "Masukkan jumlah bayar (contoh: 200.000 atau 150000): Rp ";
+                std::getline(std::cin, inputJumlahBayarStr);
+                orangBaru.jumlahBayar = stringToDoubleRupiah(inputJumlahBayarStr);
+
+                antrianPembayaran.push(orangBaru);
+                std::cout << orangBaru.nama << " berhasil ditambahkan ke antrian." << std::endl;
+                // Tidak menampilkan antrian di sini, pengguna harus memilih opsi 3
+                break;
+            }
+            case 2: {
+                if (!antrianPembayaran.empty()) {
+                    Orang orangDipanggil = antrianPembayaran.front();
+                    antrianPembayaran.pop();
+                    totalTransaksi += orangDipanggil.jumlahBayar;
+                    std::cout << "\nPetugas memanggil: " << orangDipanggil.nama
+                              << " dengan jumlah pembayaran Rp " << formatRupiah(orangDipanggil.jumlahBayar) << std::endl;
+                    // **PERUBAHAN:** Baris di bawah ini dihapus agar tidak otomatis menampilkan sisa antrian
+                    // tampilkanAntrian(antrianPembayaran);
+                } else {
+                    std::cout << "\nAntrian kosong, tidak ada yang bisa dipanggil." << std::endl;
+                }
+                break;
+            }
+            case 3: {
+                tampilkanAntrian(antrianPembayaran);
+                break;
+            }
+            case 4: {
+                std::cout << "\nTotal transaksi yang sudah dibayar: Rp "
+                          << formatRupiah(totalTransaksi) << std::endl;
+                break;
+            }
+            case 5: {
+                std::cout << "\nTerima kasih! Sampai jumpa." << std::endl;
+                break;
+            }
+            default: {
+                std::cout << "\nPilihan tidak valid. Silakan coba lagi." << std::endl;
+                break;
+            }
+        }
+    } while (pilihan != 5);
+
+    return 0;
+}
